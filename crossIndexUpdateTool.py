@@ -15,6 +15,16 @@ INDEXES = {"4.6": INDEX_4_6, "4.7": INDEX_4_7, "4.8": INDEX_4_8, "4.9": INDEX_4_
 DEBUG = False
 
 
+class ChannelUpdate:
+    """Hold info about each operator across indexes"""
+
+    def __init__(self):
+        self.common_channels = []
+        self.default_channel_per_index = []
+        self.channel_heads = []
+        self.max_ocp_per_channel = []
+
+
 def operator_across_range(connections, operator_name):
     args = (operator_name,)
     query = "SELECT p.name FROM package p WHERE name = ?"
@@ -64,31 +74,65 @@ def channels_across_range(connections, operator_name):
     GROUP BY c.name;"""
     if DEBUG:
         print("operator:", operator_name)
+    channelUpdate = ChannelUpdate()
     channels = []
-    default_channel_per_index = []
-    channel_heads = []
     for index_name, _ in INDEXES.items():
         try:
             cursor = connections[index_name].cursor()
             cursor.execute(query, args)
             rows = cursor.fetchall()
-            rows, default_channels, heads = get_default_channels_and_heads(rows)
+            common_channels, default_channels, heads = get_default_channels_and_heads(rows)
             if DEBUG:
                 print("in index", index_name, "found channels, defaults and head bundle info:", rows)
-            channels.append(rows)
+            channels.append(common_channels)
             if len(default_channels) > 0:
-                default_channel_per_index.append(default_channels[0])
+                channelUpdate.default_channel_per_index.append(default_channels[0])
             else:
-                default_channel_per_index.append(None)
-            channel_heads.append(heads)
+                channelUpdate.default_channel_per_index.append(None)
+            channelUpdate.channel_heads.append(heads)
         except sql.Error as err:
             print('Sql error: %s' % (' '.join(err.args)))
             print("Exception class is: ", err.__class__)
-            return []
-    channels_in_all = list(sum(set.intersection(*map(set, channels)), ()))
+            return None
+    channelUpdate.common_channels = list(sum(set.intersection(*map(set, channels)), ()))
     if DEBUG:
-        print("channel common to all indexes", channels_in_all)
-    return channels_in_all, default_channel_per_index, channel_heads
+        print("channel common to all indexes", channelUpdate.common_channels)
+    return channelUpdate
+
+
+def check_max_ocp(connections, all_channel_updates):
+    """check whether can't really update to some index due to maxOCP version being set for head bundle"""
+    for channel_update in all_channel_updates:
+        if len(channel_update.channel_heads) == 0:
+            channel_update.max_ocp_per_channel.append(None)
+            continue
+        for channel_heads_per_index, index_name in zip(channel_update.channel_heads, INDEXES.items()):
+            max_ocp_per_head = []
+            for channel_head in channel_heads_per_index:
+                args = (channel_head,)
+                query = """SELECT
+                    p.value 
+                FROM properties p
+                WHERE p.operatorbundle_name = ? AND type = "olm.maxOpenShiftVersion";"""
+                if DEBUG:
+                    print("checking maxOpenshiftVersion for:", channel_head)
+                row = None
+                try:
+                    cursor = connections[index_name[0]].cursor()
+                    cursor.execute(query, args)
+                    row = cursor.fetchone()
+                    if DEBUG:
+                        print("in index", index_name, "found maxOpenShiftVersion", row)
+                except sql.Error as err:
+                    print('Sql error: %s' % (' '.join(err.args)))
+                    print("Exception class is: ", err.__class__)
+                    max_ocp_per_head.append(None)
+                    continue
+                if row is None:
+                    max_ocp_per_head.append(None)
+                    continue
+                max_ocp_per_head.append(row[0])
+            channel_update.max_ocp_per_channel.append(max_ocp_per_head)
 
 
 # TODO remove? I think no-touch EUS-EUS doesn't actually need logic like this?
@@ -172,7 +216,7 @@ def trim_indexes(start_index, target_index):
     return trimmed_index
 
 
-def html_output(operators_in_all, operators_exist, channels_in_all, heads_in_all, defaults_per_index):
+def html_output(operators_in_all, operators_exist, channel_updates):
     with document(title='Cross Index Update Report') as doc:
         h1("Cross Index Update Report")
         t = table(cls="container")
@@ -182,26 +226,28 @@ def html_output(operators_in_all, operators_exist, channels_in_all, heads_in_all
                 th(h1("Operator"))
                 for idx in INDEXES:
                     th(h1(idx))
-        for operator_name, operator_exists, channels, heads, default_per_index in zip(operators_in_all, operators_exist,
-                                                                                      channels_in_all,
-                                                                                      heads_in_all, defaults_per_index):
+        for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
             with t.add(tbody()):
                 l = tr()
                 l.add(td(operator_name))
                 with l:
-                    for _, default, head in zip(INDEXES, default_per_index, heads):
+                    for default, head, max_ocps in zip(channel_update.default_channel_per_index,
+                                             channel_update.channel_heads, channel_update.max_ocp_per_channel):
                         t = td()
                         if not operator_exists:
                             t.add(p("Operator does not exist in every index"))
-                        elif len(channels) == 0:
+                        elif len(channel_update.common_channels) == 0:
                             t.add(p("No common channels across range"))
                         else:
-                            for channel in channels:
+                            for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
                                 if channel == default:
                                     t.add(p(channel + ' (default)'))
                                 else:
                                     t.add(p(channel))
-                                t.add(p(raw("&ensp;&rarr; " + head[0].replace(operator_name + ".", ""))))
+                                head_bundle_version = "&ensp;&rarr; " + head[0].replace(operator_name + ".", "")
+                                if max_ocp is not None:
+                                    head_bundle_version += " (maxOCP = " + max_ocp + ")"
+                                t.add(p(raw(head_bundle_version)))
     with doc.head:
         link(rel='stylesheet', href='cross_index_update_report.css')
 
@@ -216,16 +262,13 @@ def get_all_operators_exist(connections, all_operators):
     return all_operators_exist
 
 
-def get_all_channels(connections, all_operators):
-    all_channels = []
-    all_defaults = []
-    all_heads = []
+def get_all_channel_updates(connections, all_operators):
+    all_channel_updates = []
+
     for operator in all_operators:
-        common_channels, default_channel_per_index, heads = channels_across_range(connections, operator)
-        all_channels.append(common_channels)
-        all_defaults.append(default_channel_per_index)
-        all_heads.append(heads)
-    return all_channels, all_defaults, all_heads
+        all_channel_updates.append(channels_across_range(connections, operator))
+    check_max_ocp(connections, all_channel_updates)
+    return all_channel_updates
 
 
 def main(args):
@@ -249,12 +292,8 @@ def main(args):
 
     all_operators = get_all_operators(connections)
     all_operators_exist = get_all_operators_exist(connections, all_operators)
-    all_channels, default_channel_per_index, all_heads = get_all_channels(connections, all_operators)
+    all_channel_updates = get_all_channel_updates(connections, all_operators)
 
-    # TODO max_ocp_check()
-    """
-    check a list of operator_name_versions to make sure they don't violate max.ocp along the way of OCP updates
-    """
     # TODO deprecation_check()
     """
     check a list of operator_name_versions to make sure they aren't deprecated
@@ -269,8 +308,7 @@ def main(args):
     given two versions can you update from one to the other, even if a manual channel change is needed
     """
 
-    html_output(all_operators, all_operators_exist, all_channels, all_heads, default_channel_per_index)
-    # cli_output(operators, channels, versions)
+    html_output(all_operators, all_operators_exist, all_channel_updates)
 
 
 if __name__ == '__main__':
