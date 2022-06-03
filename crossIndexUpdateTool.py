@@ -23,6 +23,7 @@ class ChannelUpdate:
         self.default_channel_per_index = []
         self.channel_heads = []
         self.max_ocp_per_channel = []
+        self.deprecated_head = []
 
 
 def operator_across_range(connections, operator_name):
@@ -63,7 +64,7 @@ def channels_across_range(connections, operator_name):
     Determine common channels that exist across all indexes
     :param connections: a dict of connections to the sqlite databases
     :param operator_name: operator to check
-    :return: list of channels, default channels and operator bundle heads in common for all indexes
+    :return: list of ChannelUpdate instances for all operators in all indexes
     """
     args = (operator_name,)
     query = """
@@ -101,7 +102,12 @@ def channels_across_range(connections, operator_name):
 
 
 def check_max_ocp(connections, all_channel_updates):
-    """check whether can't really update to some index due to maxOCP version being set for head bundle"""
+    """
+    check whether can't really update to some index due to maxOpenShift version being set for head bundle
+    :param connections: dict with "INDEX_VERSION":sqlite3_connection
+    :param all_channel_updates: list of ChannelUpdate instances
+    :return: (mutates the field in the ChannelUpdate object instance list it is passed)
+    """
     for channel_update in all_channel_updates:
         if len(channel_update.channel_heads) == 0:
             channel_update.max_ocp_per_channel.append(None)
@@ -135,49 +141,53 @@ def check_max_ocp(connections, all_channel_updates):
             channel_update.max_ocp_per_channel.append(max_ocp_per_head)
 
 
-# TODO remove? I think no-touch EUS-EUS doesn't actually need logic like this?
-def versions_across_range(connections, operator_name):
+def check_deprecation(connections, all_channel_updates):
     """
-     Determine common versions that exist across all indexes
-     :param connections: a dict of connections to the sqlite databases
-     :param operator_name: operator to check
-     :return: list of versions in common for all indexes
-     """
-    args = (operator_name,)
-    query = """SELECT
-        b.name 
-    FROM channel_entry e
-    LEFT JOIN
-        channel_entry r ON r.entry_id = e.replaces
-    LEFT JOIN
-        operatorbundle b ON e.operatorbundle_name = b.name
-    LEFT JOIN
-        channel c ON e.package_name = c.package_name AND e.channel_name = c.name
-    LEFT JOIN
-        package p on c.package_name = p.name
-    WHERE p.name = ?;"""
-    if DEBUG:
-        print("operator:", operator_name)
-    versions = []
-    for index_name, _ in INDEXES.items():
-        try:
-            cursor = connections[index_name].cursor()
-            cursor.execute(query, args)
-            rows = cursor.fetchall()
-            if DEBUG:
-                print("in index", index_name, "found versions", rows)
-            versions.append(rows)
-        except sql.Error as err:
-            print('Sql error: %s' % (' '.join(err.args)))
-            print("Exception class is: ", err.__class__)
-            return []
-    versions_in_all = list(set.intersection(*map(set, versions)))
-    if DEBUG:
-        print("versions common to all indexes", versions_in_all)
-    return versions_in_all
+    NOTE: found none when run on 4.8-4.10 Red Hat operators so this is debug only output, not in HTML
+    check whether can't really update to some index due to deprecation being set for head bundle
+    :param connections: dict with "INDEX_VERSION":sqlite3_connection
+    :param all_channel_updates: list of ChannelUpdate instances
+    :return: (mutates the field in the ChannelUpdate object instance list it is passed)
+    """
+    for channel_update in all_channel_updates:
+        if len(channel_update.channel_heads) == 0:
+            channel_update.deprecated_head.append(None)
+            continue
+        for channel_heads_per_index, index_name in zip(channel_update.channel_heads, INDEXES.items()):
+            deprecated_per_head = []
+            for channel_head in channel_heads_per_index:
+                args = (channel_head,)
+                query = """SELECT
+                    d.operatorbundle_name 
+                FROM deprecated d
+                WHERE d.operatorbundle_name = ?;"""
+                if DEBUG:
+                    print("checking deprecated status for:", channel_head)
+                row = None
+                try:
+                    cursor = connections[index_name[0]].cursor()
+                    cursor.execute(query, args)
+                    row = cursor.fetchone()
+                    if DEBUG:
+                        print("in index", index_name, "found deprecated", row)
+                except sql.Error as err:
+                    print('Sql error: %s' % (' '.join(err.args)))
+                    print("Exception class is: ", err.__class__)
+                    deprecated_per_head.append(None)
+                    continue
+                if row is None:
+                    deprecated_per_head.append(None)
+                    continue
+                deprecated_per_head.append(True)
+            channel_update.deprecated_head.append(deprecated_per_head)
 
 
 def get_all_operators(connections):
+    """
+    gets a list of all operators in the range of indexes, unions them to assure no dupes
+    :param connections: dict with "INDEX_VERSION":sqlite3_connection
+    :return: unioned set of operators in all indexes
+    """
     operators = []
     query = """SELECT
         p.name
@@ -268,6 +278,7 @@ def get_all_channel_updates(connections, all_operators):
     for operator in all_operators:
         all_channel_updates.append(channels_across_range(connections, operator))
     check_max_ocp(connections, all_channel_updates)
+    check_deprecation(connections, all_channel_updates)
     return all_channel_updates
 
 
@@ -293,20 +304,6 @@ def main(args):
     all_operators = get_all_operators(connections)
     all_operators_exist = get_all_operators_exist(connections, all_operators)
     all_channel_updates = get_all_channel_updates(connections, all_operators)
-
-    # TODO deprecation_check()
-    """
-    check a list of operator_name_versions to make sure they aren't deprecated
-    """
-    # TODO version_in_channel_check()
-    """
-    check to make sure a given version is in the same channel along the index update progression, or return the channel
-    changes that are manually needed to be made
-    """
-    # TODO can_update_version_to_workable()
-    """
-    given two versions can you update from one to the other, even if a manual channel change is needed
-    """
 
     html_output(all_operators, all_operators_exist, all_channel_updates)
 
