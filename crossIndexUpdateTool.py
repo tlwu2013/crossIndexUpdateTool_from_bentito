@@ -5,6 +5,7 @@ import argparse
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
+from distutils.version import LooseVersion
 
 INDEX_4_6 = "resource/index/index.db.4.6.redhat-operators"
 INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
@@ -24,6 +25,7 @@ class ChannelUpdate:
         self.channel_heads = []
         self.max_ocp_per_channel = []
         self.deprecated_head = []
+        self.non_common_channels = []
 
 
 def operator_across_range(connections, operator_name):
@@ -82,10 +84,10 @@ def channels_across_range(connections, operator_name):
             cursor = connections[index_name].cursor()
             cursor.execute(query, args)
             rows = cursor.fetchall()
-            common_channels, default_channels, heads = get_default_channels_and_heads(rows)
+            channels_per_index, default_channels, heads = get_default_channels_and_heads(rows)
             if DEBUG:
                 print("in index", index_name, "found channels, defaults and head bundle info:", rows)
-            channels.append(common_channels)
+            channels.append(channels_per_index)
             if len(default_channels) > 0:
                 channelUpdate.default_channel_per_index.append(default_channels[0])
             else:
@@ -96,6 +98,9 @@ def channels_across_range(connections, operator_name):
             print("Exception class is: ", err.__class__)
             return None
     channelUpdate.common_channels = list(sum(set.intersection(*map(set, channels)), ()))
+    for channels_per_index in channels:
+        channelUpdate.non_common_channels.append(
+            set(sum(channels_per_index, ())).symmetric_difference(channelUpdate.common_channels))
     if DEBUG:
         print("channel common to all indexes", channelUpdate.common_channels)
     return channelUpdate
@@ -241,13 +246,18 @@ def html_output(operators_in_all, operators_exist, channel_updates):
                 l = tr()
                 l.add(td(operator_name))
                 with l:
-                    for default, head, max_ocps in zip(channel_update.default_channel_per_index,
-                                             channel_update.channel_heads, channel_update.max_ocp_per_channel):
-                        t = td()
+                    for default, head, max_ocps, idx_non_common in zip(channel_update.default_channel_per_index,
+                                                                       channel_update.channel_heads,
+                                                                       channel_update.max_ocp_per_channel,
+                                                                       channel_update.non_common_channels):
+                        t = td(_class="parentCell")
                         if not operator_exists:
                             t.add(p("Operator does not exist in every index"))
                         elif len(channel_update.common_channels) == 0:
-                            t.add(p("No common channels across range"))
+                            t.add("No common channels across range")
+                            comma_sep_non_common_channels = ", ".join(
+                                sorted(idx_non_common, key=LooseVersion))
+                            t.add(span(comma_sep_non_common_channels, _class="tooltip"))
                         else:
                             for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
                                 if channel == default:
