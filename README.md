@@ -3,6 +3,8 @@
 ### Install: 
 
 Python 3.x (if not already installed)
+git-lfs (for large file storage in git, to get the indexes)
+[see: https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage]
 
 ### Execute:
 
