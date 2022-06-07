@@ -241,7 +241,7 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
             with h:
                 th(h1("Operator"))
                 for idx in INDEXES:
-                    th(h1(idx))
+                    th(h1("OpenShift Index " + idx))
         for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
             table_body = tbody()
             with t.add(table_body):
@@ -304,7 +304,6 @@ def main(args):
     global DEBUG
     start_idx = args.start_index
     target_idx = args.target_index
-    operator_name = args.operator_name
     if args.debug:
         print("Debug printing turned on")
         DEBUG = True
@@ -329,7 +328,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("start_index", help="the index (OpenShift version) you are on now (4.[6,7,8,9,10])")
     parser.add_argument("target_index", help="the index (OpenShift version) you want to see move to (4.[6,7,8,9,10])")
-    parser.add_argument("operator_name", help="name of operator you want to see cross-index update information about")
     parser.add_argument("--debug", help="optionally print debug information")
     parser.add_argument("--needs-attention", help="optionally only output operators which need attention")
     args = parser.parse_args()
