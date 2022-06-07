@@ -5,7 +5,7 @@ body {
   font-family: 'Open Sans', sans-serif;
   font-weight: 300;
   line-height: 1.42em;
-  color:#A7A1AE;
+  color: #666666;
   /*background-color:#1F2739;*/
 }
 
@@ -15,16 +15,20 @@ h1 {
   line-height:1em;
   text-align: left;
   color: #4DC3FA;
+  text-align: center;
 }
 
 h2 {
-  font-size:1em;
+  font-size: 1.5em;
   font-weight: 300;
   text-align: left;
   display: block;
   line-height:1em;
   padding-bottom: 2em;
   color: #FB667A;
+  text-align: center;
+  font-weight: bold;
+  font-style: italic;
 }
 
 h2 a {
@@ -69,7 +73,7 @@ h2 a {
 
 /* Background-color of the odd rows */
 .container tr:nth-child(odd) {
-    background-color: #323C50;
+    /*background-color: #323C50;*/
 }
 
 /* Background-color of the even rows */
@@ -78,10 +82,13 @@ h2 a {
 }
 
 .container th {
-    background-color: #1F2739;
+    /*background-color: #1F2739;*/
+    box-shadow: 0 2px 2px -2px #0e1119;
 }
 
 .container td:first-child { color: #FB667A; }
+
+.container td p:nth-child(odd) { font-weight: bold;}
 
 .parentCell{
     position: relative;
