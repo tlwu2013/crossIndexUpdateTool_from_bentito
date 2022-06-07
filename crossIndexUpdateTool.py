@@ -255,12 +255,11 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                         table_data = td(_class="parentCell")
                         if not operator_exists:
                             table_data.add(p("Operator does not exist in every index"))
+                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                             keep_row = True
                         elif len(channel_update.common_channels) == 0:
                             table_data.add("No common channels across range")
-                            comma_sep_non_common_channels = ", ".join(
-                                sorted(idx_non_common, key=LooseVersion))
-                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                             keep_row = True
                         else:
                             for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
@@ -273,6 +272,9 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
                                 table_data.add(p(raw(head_bundle_version)))
                                 keep_row = False
+                        comma_sep_non_common_channels = ", ".join(
+                            sorted(idx_non_common, key=None))
+                        table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
             if needs_attention_only == 'True' and keep_row is not True:
                 l['style'] = 'visibility:collapse'
     with doc.head:
