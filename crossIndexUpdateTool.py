@@ -231,7 +231,8 @@ def trim_indexes(start_index, target_index):
     return trimmed_index
 
 
-def html_output(operators_in_all, operators_exist, channel_updates):
+def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
+    needs_attention_only = kwargs["needs_attention"]
     with document(title='Cross Index Update Report') as doc:
         h1("Cross Index Update Report")
         t = table(cls="container")
@@ -242,7 +243,8 @@ def html_output(operators_in_all, operators_exist, channel_updates):
                 for idx in INDEXES:
                     th(h1(idx))
         for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
-            with t.add(tbody()):
+            table_body = tbody()
+            with t.add(table_body):
                 l = tr()
                 l.add(td(operator_name))
                 with l:
@@ -250,24 +252,29 @@ def html_output(operators_in_all, operators_exist, channel_updates):
                                                                        channel_update.channel_heads,
                                                                        channel_update.max_ocp_per_channel,
                                                                        channel_update.non_common_channels):
-                        t = td(_class="parentCell")
+                        table_data = td(_class="parentCell")
                         if not operator_exists:
-                            t.add(p("Operator does not exist in every index"))
+                            table_data.add(p("Operator does not exist in every index"))
+                            keep_row = True
                         elif len(channel_update.common_channels) == 0:
-                            t.add("No common channels across range")
+                            table_data.add("No common channels across range")
                             comma_sep_non_common_channels = ", ".join(
                                 sorted(idx_non_common, key=LooseVersion))
-                            t.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                            keep_row = True
                         else:
                             for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
                                 if channel == default:
-                                    t.add(p(channel + ' (default)'))
+                                    table_data.add(p(channel + ' (default)'))
                                 else:
-                                    t.add(p(channel))
+                                    table_data.add(p(channel))
                                 head_bundle_version = "&ensp;&rarr; " + head[0].replace(operator_name + ".", "")
                                 if max_ocp is not None:
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
-                                t.add(p(raw(head_bundle_version)))
+                                table_data.add(p(raw(head_bundle_version)))
+                                keep_row = False
+            if needs_attention_only == 'True' and keep_row is not True:
+                l['style'] = 'visibility:collapse'
     with doc.head:
         link(rel='stylesheet', href='cross_index_update_report.css')
 
@@ -315,7 +322,7 @@ def main(args):
     all_operators_exist = get_all_operators_exist(connections, all_operators)
     all_channel_updates = get_all_channel_updates(connections, all_operators)
 
-    html_output(all_operators, all_operators_exist, all_channel_updates)
+    html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention)
 
 
 if __name__ == '__main__':
@@ -324,6 +331,7 @@ if __name__ == '__main__':
     parser.add_argument("target_index", help="the index (OpenShift version) you want to see move to (4.[6,7,8,9,10])")
     parser.add_argument("operator_name", help="name of operator you want to see cross-index update information about")
     parser.add_argument("--debug", help="optionally print debug information")
+    parser.add_argument("--needs-attention", help="optionally only output operators which need attention")
     args = parser.parse_args()
 
     main(args)
