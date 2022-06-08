@@ -113,18 +113,3 @@ h2 a {
 .container td:nth-child(4),
 .container th:nth-child(4) { display: none; }
 }
-
-span.bold {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-p {
-  font-size: 16px;
-  color: black;
-  font-family: sans-serif;
-  padding: 22px;
-  max-width: 60%;
-  display: inline-block;
-  margin-top: 0px;
-}
