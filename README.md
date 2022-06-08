@@ -12,7 +12,7 @@ git-lfs (for large file storage in git, to get the indexes)
 
 ### Run:
 
-`python3 crossIndexUpdateTool.py [-h] [--debug DEBUG] [--needs-attention True|False] start_index target_index`
+`python3 crossIndexUpdateTool.py [-h] [--debug DEBUG] start_index target_index [--needs-attention True|False] [--common-only True|False]`
 
 #### For instance:
 

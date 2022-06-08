@@ -233,6 +233,7 @@ def trim_indexes(start_index, target_index):
 
 def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     needs_attention_only = kwargs["needs_attention"]
+    common_only = kwargs["common_only"]
     with document(title='Cross Index Update Report') as doc:
         h1("Cross Index Update Report")
         t = table(cls="container")
@@ -253,14 +254,14 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                                                                        channel_update.max_ocp_per_channel,
                                                                        channel_update.non_common_channels):
                         table_data = td(_class="parentCell")
+                        comma_sep_non_common_channels = ", ".join(sorted(idx_non_common, key=None))
+                        attention_row = True
                         if not operator_exists:
                             table_data.add(p("Operator does not exist in every index"))
-                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
-                            keep_row = True
+                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                         elif len(channel_update.common_channels) == 0:
                             table_data.add("No common channels across range")
-                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
-                            keep_row = True
+                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                         else:
                             for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
                                 if channel == default:
@@ -271,13 +272,12 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                                 if max_ocp is not None:
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
                                 table_data.add(p(raw(head_bundle_version)))
-                                keep_row = False
-                        comma_sep_non_common_channels = ", ".join(
-                            sorted(idx_non_common, key=None))
-                        table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
-            if needs_attention_only == 'True' and keep_row is not True:
+                            attention_row = False
+                        # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+            if needs_attention_only == 'True' and attention_row is False:
                 l['style'] = 'visibility:collapse'
-    with doc.head:
+            if common_only == 'True' and attention_row is True:
+                l['style'] = 'visibility:collapse'
         link(rel='stylesheet', href='cross_index_update_report.css')
 
     with open('cross_index_update_report.html', 'w') as f:
@@ -323,7 +323,8 @@ def main(args):
     all_operators_exist = get_all_operators_exist(connections, all_operators)
     all_channel_updates = get_all_channel_updates(connections, all_operators)
 
-    html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention)
+    html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
+                common_only=args.common_only)
 
 
 if __name__ == '__main__':
@@ -332,6 +333,8 @@ if __name__ == '__main__':
     parser.add_argument("target_index", help="the index (OpenShift version) you want to see move to (4.[6,7,8,9,10])")
     parser.add_argument("--debug", help="optionally print debug information")
     parser.add_argument("--needs-attention", help="optionally only output operators which need attention")
+    parser.add_argument("--common-only",
+                        help="optionally only output operators which have channels in common across all indexes")
     args = parser.parse_args()
 
     main(args)
