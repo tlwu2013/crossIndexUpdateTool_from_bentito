@@ -20,6 +20,7 @@ class ChannelUpdate:
     """Hold info about each operator across indexes"""
 
     def __init__(self):
+        self.channels = []
         self.common_channels = []
         self.default_channel_per_index = []
         self.channel_heads = []
@@ -97,6 +98,7 @@ def channels_across_range(connections, operator_name):
             print('Sql error: %s' % (' '.join(err.args)))
             print("Exception class is: ", err.__class__)
             return None
+    channelUpdate.channels = channels
     channelUpdate.common_channels = list(sum(set.intersection(*map(set, channels)), ()))
     for channels_per_index in channels:
         channelUpdate.non_common_channels.append(
@@ -117,7 +119,9 @@ def check_max_ocp(connections, all_channel_updates):
         if len(channel_update.channel_heads) == 0:
             channel_update.max_ocp_per_channel.append(None)
             continue
-        for channel_heads_per_index, index_name in zip(channel_update.channel_heads, INDEXES.items()):
+        for channels_per_index, channel_heads_per_index, index_name in zip(channel_update.channels,
+                                                                           channel_update.channel_heads,
+                                                                           INDEXES.items()):
             max_ocp_per_head = []
             for channel_head in channel_heads_per_index:
                 args = (channel_head,)
@@ -132,8 +136,9 @@ def check_max_ocp(connections, all_channel_updates):
                     cursor = connections[index_name[0]].cursor()
                     cursor.execute(query, args)
                     row = cursor.fetchone()
+                    connections[index_name[0]].commit()
                     if DEBUG:
-                        print("in index", index_name, "found maxOpenShiftVersion", row)
+                        print("in index", index_name, "for bundle", channel_head, "found maxOpenShiftVersion", row)
                 except sql.Error as err:
                     print('Sql error: %s' % (' '.join(err.args)))
                     print("Exception class is: ", err.__class__)
@@ -144,6 +149,7 @@ def check_max_ocp(connections, all_channel_updates):
                     continue
                 max_ocp_per_head.append(row[0])
             channel_update.max_ocp_per_channel.append(max_ocp_per_head)
+        pass
 
 
 def check_deprecation(connections, all_channel_updates):
@@ -249,26 +255,39 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                 l = tr()
                 l.add(td(operator_name))
                 with l:
-                    for default, head, max_ocps, idx_non_common in zip(channel_update.default_channel_per_index,
-                                                                       channel_update.channel_heads,
-                                                                       channel_update.max_ocp_per_channel,
-                                                                       channel_update.non_common_channels):
+                    for default, channels, heads, max_ocps, idx_non_common in zip(
+                            channel_update.default_channel_per_index,
+                            channel_update.channels,
+                            channel_update.channel_heads,
+                            channel_update.max_ocp_per_channel,
+                            channel_update.non_common_channels):
                         table_data = td(_class="parentCell")
                         comma_sep_non_common_channels = ", ".join(sorted(idx_non_common, key=None))
                         attention_row = True
                         if not operator_exists:
                             table_data.add(p("Operator does not exist in every index"))
-                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
-                        elif len(channel_update.common_channels) == 0:
-                            table_data.add("No common channels across range")
-                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
-                        else:
-                            for channel, max_ocp in zip(channel_update.common_channels, max_ocps):
+                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                            for channel, max_ocp in zip(channels, max_ocps):
+                                channel = channel[0]
                                 if channel == default:
                                     table_data.add(p(channel + ' (default)'))
                                 else:
                                     table_data.add(p(channel))
-                                head_bundle_version = "&ensp;&rarr; " + head[0].replace(operator_name + ".", "")
+                                head_bundle_version = "&ensp;&rarr; " + heads[0].replace(operator_name + ".", "")
+                                if max_ocp is not None:
+                                    head_bundle_version += " (maxOCP = " + max_ocp + ")"
+                                table_data.add(p(raw(head_bundle_version)))
+                        elif len(channel_update.common_channels) == 0:
+                            table_data.add("No common channels across range")
+                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                        else:
+                            for channel, max_ocp in zip(channels, max_ocps):
+                                channel = channel[0]
+                                if channel == default:
+                                    table_data.add(p(channel + ' (default)'))
+                                else:
+                                    table_data.add(p(channel))
+                                head_bundle_version = "&ensp;&rarr; " + heads[0].replace(operator_name + ".", "")
                                 if max_ocp is not None:
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
                                 table_data.add(p(raw(head_bundle_version)))
