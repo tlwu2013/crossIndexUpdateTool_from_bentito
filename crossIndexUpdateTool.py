@@ -149,7 +149,6 @@ def check_max_ocp(connections, all_channel_updates):
                     continue
                 max_ocp_per_head.append(row[0])
             channel_update.max_ocp_per_channel.append(max_ocp_per_head)
-        pass
 
 
 def check_deprecation(connections, all_channel_updates):
@@ -265,7 +264,9 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                         comma_sep_non_common_channels = ", ".join(sorted(idx_non_common, key=None))
                         attention_row = True
                         if not operator_exists:
-                            table_data.add(p("Operator does not exist in every index"))
+                            if len(channels) == 0:
+                                table_data.add(p("Operator does not exist in every index"))
+                                continue
                             # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                             for channel, max_ocp in zip(channels, max_ocps):
                                 channel = channel[0]
