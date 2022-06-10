@@ -262,7 +262,7 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                         attention_row = True
                         if not operator_exists:
                             if len(channels) == 0:
-                                table_data.add(p("Operator does not exist in every index"))
+                                table_data.add(p("Operator not published in this index"))
                                 continue
                             for channel, max_ocp in zip(channels, max_ocps):
                                 channel = channel[0]
