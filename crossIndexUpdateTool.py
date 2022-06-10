@@ -5,7 +5,6 @@ import argparse
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
-from distutils.version import LooseVersion
 
 INDEX_4_6 = "resource/index/index.db.4.6.redhat-operators"
 INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
@@ -131,7 +130,6 @@ def check_max_ocp(connections, all_channel_updates):
                 WHERE p.operatorbundle_name = ? AND type = "olm.maxOpenShiftVersion";"""
                 if DEBUG:
                     print("checking maxOpenshiftVersion for:", channel_head)
-                row = None
                 try:
                     cursor = connections[index_name[0]].cursor()
                     cursor.execute(query, args)
@@ -173,7 +171,6 @@ def check_deprecation(connections, all_channel_updates):
                 WHERE d.operatorbundle_name = ?;"""
                 if DEBUG:
                     print("checking deprecated status for:", channel_head)
-                row = None
                 try:
                     cursor = connections[index_name[0]].cursor()
                     cursor.execute(query, args)
@@ -251,9 +248,9 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
         for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
             table_body = tbody()
             with t.add(table_body):
-                l = tr()
-                l.add(td(operator_name))
-                with l:
+                table_row = tr()
+                table_row.add(td(operator_name))
+                with table_row:
                     for default, channels, heads, max_ocps, idx_non_common in zip(
                             channel_update.default_channel_per_index,
                             channel_update.channels,
@@ -267,7 +264,6 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             if len(channels) == 0:
                                 table_data.add(p("Operator does not exist in every index"))
                                 continue
-                            # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
                             for channel, max_ocp in zip(channels, max_ocps):
                                 channel = channel[0]
                                 if channel == default:
@@ -293,11 +289,10 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
                                 table_data.add(p(raw(head_bundle_version)))
                             attention_row = False
-                        # table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
             if needs_attention_only == 'True' and attention_row is False:
-                l['style'] = 'visibility:collapse'
+                table_row['style'] = 'visibility:collapse'
             if common_only == 'True' and attention_row is True:
-                l['style'] = 'visibility:collapse'
+                table_row['style'] = 'visibility:collapse'
         link(rel='stylesheet', href='cross_index_update_report.css')
 
     with open('cross_index_update_report.html', 'w') as f:
