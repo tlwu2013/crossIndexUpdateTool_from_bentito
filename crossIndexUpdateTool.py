@@ -61,7 +61,7 @@ def get_default_channels_and_heads(rows):
     return channel_only, default_channels, heads
 
 
-def channels_across_range(connections, operator_name):
+def channels_across_indexes(connections, operator_name):
     """
     Determine common channels that exist across all indexes
     :param connections: a dict of connections to the sqlite databases
@@ -98,7 +98,8 @@ def channels_across_range(connections, operator_name):
             print("Exception class is: ", err.__class__)
             return None
     channelUpdate.channels = channels
-    channelUpdate.common_channels = list(sum(set.intersection(*map(set, channels)), ()))
+    channels_with_no_empties = list(filter(lambda x: x, channels))
+    channelUpdate.common_channels = list(sum(set.intersection(*map(set, channels_with_no_empties)), ()))
     for channels_per_index in channels:
         channelUpdate.non_common_channels.append(
             set(sum(channels_per_index, ())).symmetric_difference(channelUpdate.common_channels))
@@ -266,10 +267,11 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                                 continue
                             for channel, max_ocp in zip(channels, max_ocps):
                                 channel = channel[0]
+                                color_class = set_color_class_common(channel, channel_update)
                                 if channel == default:
-                                    table_data.add(p(channel + ' (default)'))
+                                    table_data.add(p(channel + ' (default)', _class=color_class))
                                 else:
-                                    table_data.add(p(channel))
+                                    table_data.add(p(channel, _class=color_class))
                                 head_bundle_version = "&ensp;&rarr; " + heads[0].replace(operator_name + ".", "")
                                 if max_ocp is not None:
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
@@ -280,10 +282,7 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                         else:
                             for channel, max_ocp, head in zip(channels, max_ocps, heads):
                                 channel = channel[0]
-                                if channel in channel_update.common_channels:
-                                    color_class = "common-channel"
-                                else:
-                                    color_class = "non-common-channel"
+                                color_class = set_color_class_common(channel, channel_update)
                                 if channel == default:
                                     table_data.add(p(channel + ' (default)', _class=color_class))
                                 else:
@@ -303,6 +302,14 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
         f.write(doc.render())
 
 
+def set_color_class_common(channel, channel_update):
+    if channel in channel_update.common_channels:
+        color_class = "common-channel"
+    else:
+        color_class = "non-common-channel"
+    return color_class
+
+
 def get_all_operators_exist(connections, all_operators):
     all_operators_exist = []
     for operator in all_operators:
@@ -314,7 +321,7 @@ def get_all_channel_updates(connections, all_operators):
     all_channel_updates = []
 
     for operator in all_operators:
-        all_channel_updates.append(channels_across_range(connections, operator))
+        all_channel_updates.append(channels_across_indexes(connections, operator))
     check_max_ocp(connections, all_channel_updates)
     check_deprecation(connections, all_channel_updates)
     return all_channel_updates
