@@ -105,6 +105,15 @@ h2 a {
     top: 20px;
     left: 20px;
 }
+
+.common-channel {
+  color: #006400;
+}
+
+.non-common-channel {
+  color: #000000;
+}
+
 .parentCell:hover span.tooltip{
     display:block;
 }

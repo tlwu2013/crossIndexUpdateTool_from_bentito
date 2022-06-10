@@ -280,10 +280,14 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                         else:
                             for channel, max_ocp, head in zip(channels, max_ocps, heads):
                                 channel = channel[0]
-                                if channel == default:
-                                    table_data.add(p(channel + ' (default)'))
+                                if channel in channel_update.common_channels:
+                                    color_class = "common-channel"
                                 else:
-                                    table_data.add(p(channel))
+                                    color_class = "non-common-channel"
+                                if channel == default:
+                                    table_data.add(p(channel + ' (default)', _class=color_class))
+                                else:
+                                    table_data.add(p(channel, _class=color_class))
                                 head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
                                 if max_ocp is not None:
                                     head_bundle_version += " (maxOCP = " + max_ocp + ")"
