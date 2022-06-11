@@ -88,7 +88,13 @@ h2 a {
 
 .container td:first-child { color: #FB667A; }
 
-.container td p:nth-child(odd) { font-weight: bold;}
+.container td p:nth-child(odd) { /* channel */
+  font-weight: bold;
+}
+
+.container td p:nth-child(even) { /* version */
+  font-size: 0.8em;
+}
 
 .parentCell{
     position: relative;
@@ -107,11 +113,21 @@ h2 a {
 }
 
 .common-channel {
-  color: #006400;
+  /*color: #006400;*/
+  border-top: 1px solid #009A75;
+  background-color: #00B388;
+  color: #FFFFFF;
+  text-indent: 0.5em;
 }
 
 .non-common-channel {
-  color: #000000;
+  border-top: 1px solid #CCCCCC;
+  background-color: #EEEEEE;
+  color: #AAAAAA;
+  text-decoration: line-through;
+  text-indent: 0.5em;
+  /*border-top: 1px solid #CCCCCC;*/
+  /*font-weight: 500 !important;*/
 }
 
 .parentCell:hover span.tooltip{
