@@ -265,32 +265,15 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             if len(channels) == 0:
                                 table_data.add(p("Operator not published in this index"))
                                 continue
-                            for channel, max_ocp in zip(channels, max_ocps):
-                                channel = channel[0]
-                                color_class = set_color_class_common(channel, channel_update)
-                                if channel == default:
-                                    table_data.add(p(channel + ' (default)', _class=color_class))
-                                else:
-                                    table_data.add(p(channel, _class=color_class))
-                                head_bundle_version = "&ensp;&rarr; " + heads[0].replace(operator_name + ".", "")
-                                if max_ocp is not None:
-                                    head_bundle_version += " (maxOCP = " + max_ocp + ")"
-                                table_data.add(p(raw(head_bundle_version)))
+                            render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name,
+                                                table_data)
                         elif len(channel_update.common_channels) == 0:
                             table_data.add("No common channels across range")
-                            table_data.add(span(comma_sep_non_common_channels, _class="tooltip"))
+                            render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name,
+                                                table_data)
                         else:
-                            for channel, max_ocp, head in zip(channels, max_ocps, heads):
-                                channel = channel[0]
-                                color_class = set_color_class_common(channel, channel_update)
-                                if channel == default:
-                                    table_data.add(p(channel + ' (default)', _class=color_class))
-                                else:
-                                    table_data.add(p(channel, _class=color_class))
-                                head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
-                                if max_ocp is not None:
-                                    head_bundle_version += " (maxOCP = " + max_ocp + ")"
-                                table_data.add(p(raw(head_bundle_version)))
+                            render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name,
+                                                table_data)
                             attention_row = False
             if needs_attention_only == 'True' and attention_row is False:
                 table_row['style'] = 'visibility:collapse'
@@ -300,6 +283,20 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
 
     with open('cross_index_update_report.html', 'w') as f:
         f.write(doc.render())
+
+
+def render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name, table_data):
+    for channel, max_ocp, head in zip(channels, max_ocps, heads):
+        channel = channel[0]
+        color_class = set_color_class_common(channel, channel_update)
+        if channel == default:
+            table_data.add(p(channel + ' (default)', _class=color_class))
+        else:
+            table_data.add(p(channel, _class=color_class))
+        head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
+        if max_ocp is not None:
+            head_bundle_version += " (maxOCP = " + max_ocp + ")"
+        table_data.add(p(raw(head_bundle_version)))
 
 
 def set_color_class_common(channel, channel_update):
