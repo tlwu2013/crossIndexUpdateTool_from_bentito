@@ -2,6 +2,9 @@
 
 import sqlite3 as sql
 import argparse
+
+import html2markdown
+
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
@@ -240,7 +243,7 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     with document(title='Cross Index Update Report') as doc:
         h1("Cross Index Update Report")
         t = table(cls="container")
-        with t.add(thead()):
+        with t:
             h = tr()
             with h:
                 th(h1("Operator"))
@@ -280,9 +283,19 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
             if common_only == 'True' and attention_row is True:
                 table_row['style'] = 'visibility:collapse'
         link(rel='stylesheet', href='cross_index_update_report.css')
+    return doc
 
+
+def write_out_html(doc):
     with open('cross_index_update_report.html', 'w') as f:
         f.write(doc.render())
+
+
+def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
+    doc = html_output(operators_in_all, operators_exist, channel_updates, **kwargs)
+    mark_down = html2markdown.convert(doc.render())
+    with open('cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
+        f.write(mark_down)
 
 
 def render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name, table_data):
@@ -346,8 +359,13 @@ def main(args):
     all_operators_exist = get_all_operators_exist(connections, all_operators)
     all_channel_updates = get_all_channel_updates(connections, all_operators)
 
-    html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
-                common_only=args.common_only)
+    if args.output == "html":
+        doc = html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
+                    common_only=args.common_only)
+        write_out_html(doc)
+    else:
+        md_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
+                    common_only=args.common_only)
 
 
 if __name__ == '__main__':
@@ -358,6 +376,7 @@ if __name__ == '__main__':
     parser.add_argument("--needs-attention", help="optionally only output operators which need attention")
     parser.add_argument("--common-only",
                         help="optionally only output operators which have channels in common across all indexes")
+    parser.add_argument("--output", help="choose output style, default is `html`, or choose `md` for markdown.", default="html")
     args = parser.parse_args()
 
     main(args)
