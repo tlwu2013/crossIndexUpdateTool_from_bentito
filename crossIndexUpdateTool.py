@@ -262,7 +262,6 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             channel_update.max_ocp_per_channel,
                             channel_update.non_common_channels):
                         table_data = td(_class="parentCell")
-                        comma_sep_non_common_channels = ", ".join(sorted(idx_non_common, key=None))
                         attention_row = True
                         if not operator_exists:
                             if len(channels) == 0:
@@ -303,9 +302,9 @@ def render_channel_rows(channel_update, channels, default, heads, max_ocps, oper
         channel = channel[0]
         color_class = set_color_class_common(channel, channel_update)
         if channel == default:
-            table_data.add(p(channel + ' (default)', _class=color_class))
+            table_data.add(p(b(channel + ' (default)'), _class=color_class))
         else:
-            table_data.add(p(channel, _class=color_class))
+            table_data.add(p(b(channel), _class=color_class))
         head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
         if max_ocp is not None:
             head_bundle_version += " (maxOCP = " + max_ocp + ")"
