@@ -25,6 +25,10 @@ will run a report for moving from version of OpenShift 4.8 to 4.10
 
 will run a report for moving from version of OpenShift 4.8 to 4.10 showing only the operators that would be problem for such an upgrade.
 
+    `python3 crossIndexUpdateTool.py 4.8 4.10 --common-only True`
+
+will run a report for moving from version of OpenShift 4.8 to 4.10 showing only the operators that have a common channel across the range.
+
     `python3 crossIndexUpdateTool.py 4.8 4.10 --output=md`
 
 will run a report and output as markdown (`--output=html` for HTML output, or leave blank as it's the default)
