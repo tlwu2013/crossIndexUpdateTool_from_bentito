@@ -33,6 +33,10 @@ will run a report for moving from version of OpenShift 4.8 to 4.10 showing only 
 
 will run a report and output as markdown (`--output=html` for HTML output, or leave blank as it's the default)
 
+    `python3 crossIndexUpdateTool.py 4.8 4.10 --yes-no=True`
+
+will run a report and output simple 'Yes' or 'No' for whether operator is EUS maintained in the range.
+
 ---
 In the repo, `resource/index` contains the Red Hat Operator indexes which are
 the databases with the package and bundle information.
