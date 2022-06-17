@@ -240,6 +240,8 @@ def trim_indexes(start_index, target_index):
 def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     needs_attention_only = kwargs["needs_attention"]
     common_only = kwargs["common_only"]
+    yes_no = kwargs["yes_no"]
+
     with document(title='Cross Index Update Report') as doc:
         h1("Cross Index Update Report")
         t = table(cls="container")
@@ -247,10 +249,14 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
             h = tr()
             with h:
                 th(h1("Operator"))
-                for idx in INDEXES:
-                    th(h1("OpenShift Index " + idx))
+                if yes_no == 'True':
+                    th(h1("EUS Maintained from OpenShift Index " + list(INDEXES)[0] + " to " + list(INDEXES)[-1]))
+                else:
+                    for idx in INDEXES:
+                        th(h1("OpenShift Index " + idx))
         for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
             table_body = tbody()
+            row_cells = []
             with t.add(table_body):
                 table_row = tr()
                 table_row.add(td(operator_name))
@@ -263,9 +269,11 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             channel_update.non_common_channels):
                         table_data = td(_class="parentCell")
                         attention_row = True
+                        yes_row = False
                         if not operator_exists:
                             if len(channels) == 0:
                                 table_data.add(p("Operator not published in this index"))
+                                row_cells.append(table_data)
                                 continue
                             render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name,
                                                 table_data)
@@ -277,12 +285,21 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name,
                                                 table_data)
                             attention_row = False
+                            yes_row = True
+                        row_cells.append(table_data)
             if needs_attention_only == 'True' and attention_row is False:
-                table_row['style'] = 'visibility:collapse'
                 table_body.remove(table_row)
             if common_only == 'True' and attention_row is True:
-                table_row['style'] = 'visibility:collapse'
                 table_body.remove(table_row)
+            if yes_no == 'True':
+                for cell in row_cells:
+                    table_row.remove(cell)
+                yes_no_data = td(_class="parentCell")
+                if yes_row:
+                    yes_no_data.add(p("Yes"))
+                else:
+                    yes_no_data.add(p("No"))
+                table_row.add(yes_no_data)
         link(rel='stylesheet', href='cross_index_update_report.css')
     return doc
 
@@ -362,11 +379,11 @@ def main(args):
 
     if args.output == "html":
         doc = html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
-                    common_only=args.common_only)
+                          common_only=args.common_only, yes_no=args.yes_no)
         write_out_html(doc)
     else:
         md_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
-                    common_only=args.common_only)
+                  common_only=args.common_only, yes_no=args.yes_no)
 
 
 if __name__ == '__main__':
@@ -377,7 +394,12 @@ if __name__ == '__main__':
     parser.add_argument("--needs-attention", help="optionally only output operators which need attention")
     parser.add_argument("--common-only",
                         help="optionally only output operators which have channels in common across all indexes")
-    parser.add_argument("--output", help="choose output style, default is `html`, or choose `md` for markdown.", default="html")
+    parser.add_argument("--yes-no",
+                        help="optionally only output whether operators, 'Yes', have a clean path from index to index "
+                             "for update, or 'No', they don't. Operators without a common channel in all indexes, or, "
+                             "without an operator published in all indexes will show as 'No'")
+    parser.add_argument("--output", help="choose output style, default is `html`, or choose `md` for markdown.",
+                        default="html")
     args = parser.parse_args()
 
     main(args)
