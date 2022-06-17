@@ -279,8 +279,10 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
                             attention_row = False
             if needs_attention_only == 'True' and attention_row is False:
                 table_row['style'] = 'visibility:collapse'
+                table_body.remove(table_row)
             if common_only == 'True' and attention_row is True:
                 table_row['style'] = 'visibility:collapse'
+                table_body.remove(table_row)
         link(rel='stylesheet', href='cross_index_update_report.css')
     return doc
 
