@@ -238,6 +238,9 @@ def trim_indexes(start_index, target_index):
 
 
 def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
+    """
+    always generate HTML for output. If markdown output is desired, the html will be converted to MD later.
+    """
     needs_attention_only = kwargs["needs_attention"]
     common_only = kwargs["common_only"]
     yes_no = kwargs["yes_no"]
@@ -318,6 +321,9 @@ def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
 
 
 def render_channel_rows(channel_update, channels, default, heads, max_ocps, operator_name, table_data):
+    """
+    helper for html_generate()
+    """
     for channel, max_ocp, head in zip(channels, max_ocps, heads):
         channel = channel[0]
         color_class = set_color_class_common(channel, channel_update)
@@ -332,6 +338,9 @@ def render_channel_rows(channel_update, channels, default, heads, max_ocps, oper
 
 
 def set_color_class_common(channel, channel_update):
+    """
+    helper for html_generate()
+    """
     if channel in channel_update.common_channels:
         color_class = "common-channel"
     else:
