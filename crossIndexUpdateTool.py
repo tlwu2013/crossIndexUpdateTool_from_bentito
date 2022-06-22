@@ -321,9 +321,9 @@ def render_channel_rows(channel_update, channels, default, heads, max_ocps, oper
         channel = channel[0]
         color_class = set_color_class_common(channel, channel_update)
         if channel == default:
-            table_data.add(span(b(channel + ' (default)'), _class=color_class))
+            table_data.add(p(b(channel + ' (default)'), _class=color_class))
         else:
-            table_data.add(span(b(channel), _class=color_class))
+            table_data.add(p(b(channel), _class=color_class))
         head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
         if max_ocp is not None:
             head_bundle_version += " (maxOCP = " + max_ocp + ")"
