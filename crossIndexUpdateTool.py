@@ -237,7 +237,7 @@ def trim_indexes(start_index, target_index):
     return trimmed_index
 
 
-def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
+def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
     needs_attention_only = kwargs["needs_attention"]
     common_only = kwargs["common_only"]
     yes_no = kwargs["yes_no"]
@@ -304,13 +304,14 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     return doc
 
 
-def write_out_html(doc):
+def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
+    doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
     with open('cross_index_update_report.html', 'w') as f:
         f.write(doc.render())
 
 
 def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
-    doc = html_output(operators_in_all, operators_exist, channel_updates, **kwargs)
+    doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
     mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=False)
     with open('cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
         f.write(mark_down)
@@ -378,9 +379,8 @@ def main(args):
     all_channel_updates = get_all_channel_updates(connections, all_operators)
 
     if args.output == "html":
-        doc = html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
+        html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
                           common_only=args.common_only, yes_no=args.yes_no)
-        write_out_html(doc)
     else:
         md_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
                   common_only=args.common_only, yes_no=args.yes_no)
