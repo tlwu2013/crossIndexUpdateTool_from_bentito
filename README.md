@@ -9,7 +9,7 @@ git-lfs (for large file storage in git, to get the indexes)
 ### Execute:
 
 `pip install dominate`
-`pip install html2markdown`
+`pip install htmltabletomd`
 
 ### Run:
 

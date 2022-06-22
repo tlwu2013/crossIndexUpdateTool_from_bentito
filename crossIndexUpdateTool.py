@@ -3,7 +3,7 @@
 import sqlite3 as sql
 import argparse
 
-import html2markdown
+import htmltabletomd
 
 from dominate import document
 from dominate.tags import *
@@ -311,7 +311,7 @@ def write_out_html(doc):
 
 def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     doc = html_output(operators_in_all, operators_exist, channel_updates, **kwargs)
-    mark_down = html2markdown.convert(doc.render())
+    mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=False)
     with open('cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
         f.write(mark_down)
 
