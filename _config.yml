@@ -7,4 +7,4 @@ relative_links:
 include:
   - CONTRIBUTING.md
   - README.md
-  - cross_index_update_report.md 
+  - md_reports/
