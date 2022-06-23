@@ -316,6 +316,8 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
 def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
     mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=True, all_cols_alignment="left")
+    # library converting h1 to # in markdown and that won't work in the markdown table cells
+    mark_down = mark_down.translate({ord(i): None for i in '#'})
     with open('cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
         f.write(mark_down)
 
