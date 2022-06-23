@@ -315,7 +315,7 @@ def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
 
 def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
-    mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=False)
+    mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=True, all_cols_alignment="left")
     with open('cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
         f.write(mark_down)
 
@@ -389,7 +389,7 @@ def main(args):
 
     if args.output == "html":
         html_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
-                          common_only=args.common_only, yes_no=args.yes_no)
+                    common_only=args.common_only, yes_no=args.yes_no)
     else:
         md_output(all_operators, all_operators_exist, all_channel_updates, needs_attention=args.needs_attention,
                   common_only=args.common_only, yes_no=args.yes_no)
