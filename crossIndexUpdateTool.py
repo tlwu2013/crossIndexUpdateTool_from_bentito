@@ -308,9 +308,26 @@ def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
     return doc
 
 
+def generate_filename_suffix(**kwargs):
+    """
+    use the keyword flags to make a suffix for the filename
+    """
+    suffix = list(INDEXES)[0] + "-" + list(INDEXES)[-1] + "_"
+    if all(value is None for value in kwargs.values()):
+        # "all" makes sense in that all the flags limit which operators are shown, or hide complexity,
+        # if there are none, we're reporting "all"
+        suffix = "all"
+    else:
+        for flag, value in zip(kwargs.keys(), kwargs.values()):
+            if value is not None:
+                suffix += str(flag or '')
+    return suffix
+
+
 def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
-    with open('cross_index_update_report.html', 'w') as f:
+    suffix = generate_filename_suffix(**kwargs)
+    with open('html_reports/cross_index_update_report_' + suffix + '.html', 'w') as f:
         f.write(doc.render())
 
 
@@ -319,7 +336,9 @@ def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=True, all_cols_alignment="left")
     # library converting h1 to # in markdown and that won't work in the markdown table cells
     mark_down = mark_down.translate({ord(i): None for i in '#'})
-    with open('md_reports/cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
+    suffix = generate_filename_suffix(**kwargs)
+    with open('md_reports/cross_index_update_report_' + suffix + '.md', 'w', encoding="utf-8",
+              errors="xmlcharrefreplace") as f:
         f.write(mark_down)
 
 
