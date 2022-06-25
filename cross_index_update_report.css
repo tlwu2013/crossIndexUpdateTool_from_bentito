@@ -14,7 +14,7 @@ h1 {
   font-weight: 300;
   line-height:1em;
   text-align: left;
-  color: #037A9E;  /* RH */
+  color: #4DC3FA;
   text-align: center;
 }
 
@@ -25,7 +25,7 @@ h2 {
   display: block;
   line-height:1em;
   padding-bottom: 2em;
-  color: #EE0000; /* RH */
+  color: #FB667A;
   text-align: center;
   font-weight: bold;
   font-style: italic;
@@ -34,18 +34,18 @@ h2 {
 h2 a {
   font-weight: 700;
   text-transform: uppercase;
-  color: #EE0000; /* RH */
+  color: #FB667A;
   text-decoration: none;
 }
 
-.blue { color: #023D4F;  /* RH */}
+.blue { color: #185875; }
 .yellow { color: #FFF842; }
 
 .container th h1 {
-  font-weight: bold;
-  font-size: 1em;
+    font-weight: bold;
+    font-size: 1em;
   text-align: left;
-  color: #023D4F;  /* RH */
+  color: #185875;
 }
 
 .container td {
@@ -86,17 +86,9 @@ h2 a {
     box-shadow: 0 2px 2px -2px #0e1119;
 }
 
-.container td:first-child { color: #EE0000; /* RH */ }
+.container td:first-child { color: #FB667A; }
 
-.container td p:nth-child(odd) { /* channel */
-  font-weight: bold;
-}
-
-.container td p:nth-child(even) { /* version */
-  font-size: 0.9em;
-  color: #2E2E2E;
-  font-weight: bold;
-}
+.container td p:nth-child(odd) { font-weight: bold;}
 
 .parentCell{
     position: relative;
@@ -115,23 +107,11 @@ h2 a {
 }
 
 .common-channel {
-  border-top: 1px solid #689B7A;
-  background-color: #C9E5D3; /*RH */
-  color: #344E3D;  /*RH */
-  text-indent: 0.5em;
+  color: #006400;
 }
 
 .non-common-channel {
-  border-top: 1px solid #CCCCCC;
-  background-color: #EEEEEE;
-  color: #AAAAAA;
-  text-decoration: line-through;
-  text-indent: 0.5em;
-}
-
-p.non-common-channel + p { /* non-common channel head version */
-  color: #CCCCCC !important;
-  text-decoration: line-through;
+  color: #000000;
 }
 
 .parentCell:hover span.tooltip{
