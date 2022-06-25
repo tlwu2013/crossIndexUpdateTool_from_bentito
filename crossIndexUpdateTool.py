@@ -2,9 +2,9 @@
 
 import sqlite3 as sql
 import argparse
+import operator
 
 import htmltabletomd
-
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
@@ -257,7 +257,8 @@ def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
                 else:
                     for idx in INDEXES:
                         th(h1("OpenShift Index " + idx))
-        for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
+        for operator_name, operator_exists, channel_update in sorted(
+                zip(operators_in_all, operators_exist, channel_updates), key=operator.itemgetter(0)):
             table_body = tbody()
             row_cells = []
             with t.add(table_body):
