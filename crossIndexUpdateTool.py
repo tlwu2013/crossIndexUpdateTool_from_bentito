@@ -8,6 +8,8 @@ import htmltabletomd
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
+from packaging import version
+
 
 INDEX_4_6 = "resource/index/index.db.4.6.redhat-operators"
 INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
@@ -111,9 +113,9 @@ def channels_across_indexes(connections, operator_name):
     return channelUpdate
 
 
-def check_max_ocp(connections, all_channel_updates):
+def get_max_ocp(connections, all_channel_updates):
     """
-    check whether can't really update to some index due to maxOpenShift version being set for head bundle
+    loads info per channel, per index, for maxOpenShift version being set for head bundle
     :param connections: dict with "INDEX_VERSION":sqlite3_connection
     :param all_channel_updates: list of ChannelUpdate instances
     :return: (mutates the field in the ChannelUpdate object instance list it is passed)
@@ -377,12 +379,25 @@ def get_all_operators_exist(connections, all_operators):
     return all_operators_exist
 
 
+def modify_common_by_maxocp(all_channel_updates):
+    """if maxOCP indicates that a channel head won't allow cluster upgrade past some index,
+    delete common channels accordingly"""
+    for channel_update in all_channel_updates:
+        # loop on indexes in maxOCP
+        for idx, max_ocp_per_index, channels in zip(INDEXES.keys(), channel_update.max_ocp_per_channel, channel_update.channels):
+            for max_ocp, channel in zip(max_ocp_per_index, channels):
+                if max_ocp is not None:
+                    if version.parse(max_ocp.strip('"')) < version.parse(idx):
+                        channel_update.common_channels.remove(channel[0])
+
+
 def get_all_channel_updates(connections, all_operators):
     all_channel_updates = []
 
     for operator in all_operators:
         all_channel_updates.append(channels_across_indexes(connections, operator))
-    check_max_ocp(connections, all_channel_updates)
+    get_max_ocp(connections, all_channel_updates)
+    modify_common_by_maxocp(all_channel_updates)
     check_deprecation(connections, all_channel_updates)
     return all_channel_updates
 
