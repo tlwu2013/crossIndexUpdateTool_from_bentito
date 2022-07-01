@@ -2,12 +2,14 @@
 
 import sqlite3 as sql
 import argparse
+import operator
 
 import htmltabletomd
-
 from dominate import document
 from dominate.tags import *
 from dominate.util import raw
+from packaging import version
+
 
 INDEX_4_6 = "resource/index/index.db.4.6.redhat-operators"
 INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
@@ -74,9 +76,9 @@ def channels_across_indexes(connections, operator_name):
     args = (operator_name,)
     query = """
     SELECT c.name, p.default_channel, c.head_operatorbundle_name
-    FROM package p, channel c 
+    FROM package p, channel c
     JOIN package on p.name = c.package_name
-    WHERE package_name = ? 
+    WHERE package_name = ?
     GROUP BY c.name;"""
     if DEBUG:
         print("operator:", operator_name)
@@ -111,9 +113,9 @@ def channels_across_indexes(connections, operator_name):
     return channelUpdate
 
 
-def check_max_ocp(connections, all_channel_updates):
+def get_max_ocp(connections, all_channel_updates):
     """
-    check whether can't really update to some index due to maxOpenShift version being set for head bundle
+    loads info per channel, per index, for maxOpenShift version being set for head bundle
     :param connections: dict with "INDEX_VERSION":sqlite3_connection
     :param all_channel_updates: list of ChannelUpdate instances
     :return: (mutates the field in the ChannelUpdate object instance list it is passed)
@@ -129,7 +131,7 @@ def check_max_ocp(connections, all_channel_updates):
             for channel_head in channel_heads_per_index:
                 args = (channel_head,)
                 query = """SELECT
-                    p.value 
+                    p.value
                 FROM properties p
                 WHERE p.operatorbundle_name = ? AND type = "olm.maxOpenShiftVersion";"""
                 if DEBUG:
@@ -170,7 +172,7 @@ def check_deprecation(connections, all_channel_updates):
             for channel_head in channel_heads_per_index:
                 args = (channel_head,)
                 query = """SELECT
-                    d.operatorbundle_name 
+                    d.operatorbundle_name
                 FROM deprecated d
                 WHERE d.operatorbundle_name = ?;"""
                 if DEBUG:
@@ -202,7 +204,7 @@ def get_all_operators(connections):
     operators = []
     query = """SELECT
         p.name
-    FROM 
+    FROM
         package p;"""
     for index_name, _ in INDEXES.items():
         try:
@@ -257,7 +259,8 @@ def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
                 else:
                     for idx in INDEXES:
                         th(h1("OpenShift Index " + idx))
-        for operator_name, operator_exists, channel_update in zip(operators_in_all, operators_exist, channel_updates):
+        for operator_name, operator_exists, channel_update in sorted(
+                zip(operators_in_all, operators_exist, channel_updates), key=operator.itemgetter(0)):
             table_body = tbody()
             row_cells = []
             with t.add(table_body):
@@ -307,9 +310,26 @@ def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
     return doc
 
 
+def generate_filename_suffix(**kwargs):
+    """
+    use the keyword flags to make a suffix for the filename
+    """
+    suffix = list(INDEXES)[0] + "-" + list(INDEXES)[-1] + "_"
+    if all(value is None for value in kwargs.values()):
+        # "all" makes sense in that all the flags limit which operators are shown, or hide complexity,
+        # if there are none, we're reporting "all"
+        suffix = "all"
+    else:
+        for flag, value in zip(kwargs.keys(), kwargs.values()):
+            if value is not None:
+                suffix += str(flag or '')
+    return suffix
+
+
 def html_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     doc = html_generate(operators_in_all, operators_exist, channel_updates, **kwargs)
-    with open('cross_index_update_report.html', 'w') as f:
+    suffix = generate_filename_suffix(**kwargs)
+    with open('html_reports/cross_index_update_report_' + suffix + '.html', 'w') as f:
         f.write(doc.render())
 
 
@@ -318,7 +338,9 @@ def md_output(operators_in_all, operators_exist, channel_updates, **kwargs):
     mark_down = htmltabletomd.convert_table(doc.render(), content_conversion_ind=True, all_cols_alignment="left")
     # library converting h1 to # in markdown and that won't work in the markdown table cells
     mark_down = mark_down.translate({ord(i): None for i in '#'})
-    with open('md_reports/cross_index_update_report.md', 'w', encoding="utf-8", errors="xmlcharrefreplace") as f:
+    suffix = generate_filename_suffix(**kwargs)
+    with open('md_reports/cross_index_update_report_' + suffix + '.md', 'w', encoding="utf-8",
+              errors="xmlcharrefreplace") as f:
         f.write(mark_down)
 
 
@@ -357,12 +379,25 @@ def get_all_operators_exist(connections, all_operators):
     return all_operators_exist
 
 
+def modify_common_by_maxocp(all_channel_updates):
+    """if maxOCP indicates that a channel head won't allow cluster upgrade past some index,
+    delete common channels accordingly"""
+    for channel_update in all_channel_updates:
+        # loop on indexes in maxOCP
+        for idx, max_ocp_per_index, channels in zip(INDEXES.keys(), channel_update.max_ocp_per_channel, channel_update.channels):
+            for max_ocp, channel in zip(max_ocp_per_index, channels):
+                if max_ocp is not None:
+                    if version.parse(max_ocp.strip('"')) < version.parse(idx):
+                        channel_update.common_channels.remove(channel[0])
+
+
 def get_all_channel_updates(connections, all_operators):
     all_channel_updates = []
 
     for operator in all_operators:
         all_channel_updates.append(channels_across_indexes(connections, operator))
-    check_max_ocp(connections, all_channel_updates)
+    get_max_ocp(connections, all_channel_updates)
+    modify_common_by_maxocp(all_channel_updates)
     check_deprecation(connections, all_channel_updates)
     return all_channel_updates
 

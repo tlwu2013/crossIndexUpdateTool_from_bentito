@@ -1,6 +1,6 @@
 # Reporting tool, generates HTML reports for operators updating from one EUS OCP index to another.
 
-### Install: 
+### Install:
 
 Python 3.x (if not already installed)
 git-lfs (for large file storage in git, to get the indexes)
@@ -10,6 +10,7 @@ git-lfs (for large file storage in git, to get the indexes)
 
 `pip install dominate`
 `pip install htmltabletomd`
+`pip install packaging`
 
 ### Run:
 
@@ -44,4 +45,4 @@ the databases with the package and bundle information.
 The indexes are always changing, so if you want a completely up-to-date report,
 you must download fresh copies of the indexes.
 
-Note: `DeprecationWarning: distutils Version classes are deprecated` can safely be ignored. 
+Note: `DeprecationWarning: distutils Version classes are deprecated` can safely be ignored.
