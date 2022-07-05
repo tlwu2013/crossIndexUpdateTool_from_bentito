@@ -388,7 +388,8 @@ def modify_common_by_maxocp(all_channel_updates):
             for max_ocp, channel in zip(max_ocp_per_index, channels):
                 if max_ocp is not None:
                     if version.parse(max_ocp.strip('"')) < version.parse(idx):
-                        channel_update.common_channels.remove(channel[0])
+                        if channel[0] in channel_update.common_channels:
+                            channel_update.common_channels.remove(channel[0])
 
 
 def get_all_channel_updates(connections, all_operators):
