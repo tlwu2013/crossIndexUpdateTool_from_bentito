@@ -265,7 +265,7 @@ def html_generate(operators_in_all, operators_exist, channel_updates, **kwargs):
             row_cells = []
             with t.add(table_body):
                 table_row = tr()
-                table_row.add(td(operator_name))
+                table_row.add(td(a(operator_name, id='%s' % operator_name, href='#%s' % operator_name)))
                 with table_row:
                     for default, channels, heads, max_ocps, idx_non_common in zip(
                             channel_update.default_channel_per_index,
