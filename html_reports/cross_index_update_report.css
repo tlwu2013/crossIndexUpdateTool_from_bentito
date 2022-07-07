@@ -130,6 +130,11 @@ h2 a {
   text-indent: 0.5em;
 }
 
+.small {
+  font-size: 0.9em;
+  font-weight: lighter;
+}
+
 p.non-common-channel + p { /* non-common channel head version */
   color: #CCCCCC !important;
   text-decoration: line-through;

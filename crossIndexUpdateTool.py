@@ -10,7 +10,6 @@ from dominate.tags import *
 from dominate.util import raw
 from packaging import version
 
-
 INDEX_4_6 = "resource/index/index.db.4.6.redhat-operators"
 INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
 INDEX_4_8 = "resource/index/index.db.4.8.redhat-operators"
@@ -352,13 +351,14 @@ def render_channel_rows(channel_update, channels, default, heads, max_ocps, oper
         channel = channel[0]
         color_class = set_color_class_common(channel, channel_update)
         if channel == default:
-            table_data.add(p(b(channel + ' (default)'), _class=color_class))
+            table_data.add(p(span("CHANNEL: ", _class="small"), b(channel + ' (default)'), _class=color_class))
         else:
-            table_data.add(p(b(channel), _class=color_class))
-        head_bundle_version = "&ensp;&rarr; " + head.replace(operator_name + ".", "")
+            table_data.add(p(span("CHANNEL: ", _class="small"), b(channel), _class=color_class))
+        arrow_leader = "&ensp;&rarr; "
+        head_bundle_version = head.replace(operator_name + ".", "")
         if max_ocp is not None:
             head_bundle_version += " (maxOCP = " + max_ocp + ")"
-        table_data.add(p(raw(head_bundle_version)))
+        table_data.add(p(raw(arrow_leader), span("CURRENT VERSION: ", _class="small"), head_bundle_version))
 
 
 def set_color_class_common(channel, channel_update):
@@ -384,7 +384,8 @@ def modify_common_by_maxocp(all_channel_updates):
     delete common channels accordingly"""
     for channel_update in all_channel_updates:
         # loop on indexes in maxOCP
-        for idx, max_ocp_per_index, channels in zip(INDEXES.keys(), channel_update.max_ocp_per_channel, channel_update.channels):
+        for idx, max_ocp_per_index, channels in zip(INDEXES.keys(), channel_update.max_ocp_per_channel,
+                                                    channel_update.channels):
             for max_ocp, channel in zip(max_ocp_per_index, channels):
                 if max_ocp is not None:
                     if version.parse(max_ocp.strip('"')) < version.parse(idx):
