@@ -43,4 +43,8 @@ the databases with the package and bundle information.
 The indexes are always changing, so if you want a completely up-to-date report,
 you must download fresh copies of the indexes.
 
+Special instructions for getting 4.11 RH index:
+
+    `docker run --rm --entrypoint cat registry.redhat.io/redhat/redhat-operator-index:v4.11 /var/lib/iib/_hidden/do.not.edit.db > index.db.4.11.redhat-operators`
+
 Note: `DeprecationWarning: distutils Version classes are deprecated` can safely be ignored. 
