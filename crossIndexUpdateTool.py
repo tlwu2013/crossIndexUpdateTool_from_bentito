@@ -15,7 +15,7 @@ INDEX_4_7 = "resource/index/index.db.4.7.redhat-operators"
 INDEX_4_8 = "resource/index/index.db.4.8.redhat-operators"
 INDEX_4_9 = "resource/index/index.db.4.9.redhat-operators"
 INDEX_4_10 = "resource/index/index.db.4.10.redhat-operators"
-INDEX_4_11 = "resource/index/index.db.4.10.redhat-operators"
+INDEX_4_11 = "resource/index/index.db.4.11.redhat-operators"
 
 INDEXES = {"4.6": INDEX_4_6, "4.7": INDEX_4_7, "4.8": INDEX_4_8, "4.9": INDEX_4_9, "4.10": INDEX_4_10,
            "4.11": INDEX_4_11}
