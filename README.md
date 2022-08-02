@@ -8,9 +8,7 @@ git-lfs (for large file storage in git, to get the indexes)
 
 ### Execute:
 
-`pip install dominate`
-`pip install htmltabletomd`
-`pip install packaging`
+`pip install -r requirements.txt`
 
 ### Run:
 
